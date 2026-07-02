@@ -7,7 +7,8 @@
 # editing this workflow or any shared file.
 #
 # Requires a PAT (SKILLS_SYNC_PAT) with read access to all product
-# repos, stored as a repository secret.
+# repos plus contents/pull-requests write access on this repository,
+# stored as a repository secret.
 
 name: Sync Skills from Product Repos
 
@@ -462,6 +463,7 @@ jobs:
           fi
 
       - name: Snapshot existing drop-tracker state
+        if: github.event.repository.has_issues == true
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -475,6 +477,7 @@ jobs:
             || echo '{}' > /tmp/pre-update-tracker.json
 
       - name: Track dropped skills
+        if: github.event.repository.has_issues == true
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -657,6 +660,7 @@ jobs:
           fi
 
       - name: Ping skill owners for new drops
+        if: github.event.repository.has_issues == true
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -859,6 +863,7 @@ jobs:
         if: steps.summary.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
+          token: ${{ secrets.SKILLS_SYNC_PAT }}
           commit-message: ${{ steps.summary.outputs.title }}
           branch: automated/sync-skills
           title: ${{ steps.summary.outputs.title }}
@@ -866,7 +871,7 @@ jobs:
           delete-branch: true
 
       - name: Update sync-failure tracking issue (rolling)
-        if: always()
+        if: always() && github.event.repository.has_issues == true
         continue-on-error: true
         uses: actions/github-script@v7
         with:
